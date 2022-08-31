@@ -1,328 +1,396 @@
-// base
-const _unqId = () => {
-    return (btoa(Date.now().toString() + Math.random().toString()))
-        .replace(/=/g, '')
-        .replace(/.{9}/g, '$&-');
-};
-const _exists = sel => sel instanceof Element
-    ? document.body.contains(sel)
-    : document.body.contains(_dom.get(sel));
-const _isset = item => item instanceof Element
-    ? _exists(item)
-    : typeof item != 'undefined' && item != null;
-const _url = {};
-_url.params = () => {
-    const queryParameters = new Proxy(new URLSearchParams(window.location.search), {
-        get: (searchParams, prop) => searchParams.get(prop),
-    });
+(function() {
+	'use strict';
+	// classes
+	class VirtualNode {
+		constructor(_tag, _props, _children) {
+			this.tag = _tag.toLowerCase();
+			this.props = _props;
+			this.children = _children;
+			this.el = _.dom(this.tag, true);
+		}
 
-    return queryParameters;
-};
+		len() {
+			return this.children.length;
+		}
 
-// dom
-const _dom = {};
-_dom.get = sel => {
-    const el = document.querySelectorAll(sel);
-    return el.length == 0
-        ? document.createElement(sel)
-        : el[0];
-};
-_dom.all = sel => {
-    const el = document.querySelectorAll(sel);
-    return el.length == 0
-        ? document.createElement(sel)
-        : el;
-};
-_dom.new = tag => document.createElement(tag);
-_dom.ready = fn => {
-    if (document.readyState != 'loading') fn();
-    else document.addEventListener('DOMContentLoaded', fn, _dom.evtOpt);
-};
-_dom.evtOpt = { capture: true, once: false, passive: true };
+		app() {
+			return _.dom('#app');
+		}
 
-// prototype
-const _pro = HTMLElement.prototype;
-_pro._on = function (eventName, eventHandler) {
-    this.addEventListener(eventName, eventHandler, _dom.evtOpt);
-    return this;
-};
-_pro._val = function (newVal) {
-    if (newVal == undefined)  return this.value;
-    this.value = newVal;
-    return this;
-};
-_pro._html = function (html) {
-    if (html == undefined) return this.innerHTML;
-    this.innerHTML = html;
-    return this;
-};
-_pro._empty = function () {
-    this.innerHTML = '';
-    return this;
-};
-_pro._append = function (html) {
-    this.innerHTML = this.innerHTML + html;
-    return this;
-};
-_pro._prepend = function (html) {
-    this.innerHTML = html + this.innerHTML;
-    return this;
-};
-_pro._addClass = function (className) {
-    this.classList.add(className);
-    return this;
-};
-_pro._removeClass = function (className) {
-    this.classList.remove(className);
-    return this;
-};
-_pro._toggleClass = function (className) {
-    this.classList.toggle(className);
-    return this;
-};
-_pro._hide = function () {
-    this.style.display = 'none';
-    return this;
-};
-_pro._show = function () {
-    if (this.style.display == 'none') this.style.display = '';
-    return this;
-};
-_pro._remove = function () {
-    this.parentNode.removeChild(this);
-};
-_pro._attr = function (attributeName, value) {
-    if (typeof value == 'undefined') return this.getAttribute(attributeName);
-    this.setAttribute(attributeName, value);
-    return this;
-};
-_pro._hasClass = function (className) {
-    return this.classList.contains(className);
-};
-_pro._prev = function () {
-    return this.previousElementSibling;
-};
-_pro._next = function () {
-    return this.nextElementSibling;
-};
-_pro._parent = function () {
-    return this.parentNode;
-};
-_pro._find = function (sel) {
-    return this.querySelectorAll(sel);
-};
-_pro._trigger = function (eventName) {
-    const event = new Event(eventName);
-    this.dispatchEvent(event);
-    return this;
-};
+		parent() {
+			return this.el._parent();
+		}
 
-// JSX Components
-/* How to use
-_jsx.render(
-    _jsx.div({ id: 'app', className: 'card' },
-        _jsx.header({ className: 'header' },
-            _jsx.h1({ className: 'header_title' }, 'Simple Framework'),
-            _jsx.a(
-                {
-                    className: 'button',
-                    target: '_blank',
-                    alt: 'Find out more about Simple Framework',
-                    href: 'https://simple.acode.cl',
-                },
-                'What is this?',
-            ),
-        ),
-    )
-);
-*/
-const _jsx = {};
-_jsx.exception = {};
-_jsx.set = {};
-_jsx.add = {};
-_jsx.exception.attribute = ['role'];
-_jsx.set.text = (el, text) => {
-    const textNode = document.createTextNode(text);
-    el._append(textNode);
-};
-_jsx.set.attribute = (el, styles) => {
-    if (!styles) {
-        el.removeAttribute('styles');
-        return;
+		remove() {
+			if (this.el != null) this.el._remove();
+		}
+
+		renderTo(_container) {
+			const _element = this.el;
+			if (_container == null) _container = this.app();
+			for (const _key in this.props) {
+				if (_key) _element._attr(_key, this.props[_key]);
+			}
+			if (typeof this.children === 'string')
+				_element._text(this.children);
+			else this.children.forEach(
+				child => child.renderTo(_element)
+			);
+			_container.appendChild(_element);
+		}
+
+		replaceBy(_vnode) {
+			const _element = (_vnode._element = this.el);
+			if (this.tag !== _vnode.tag) {
+				_vnode.renderTo(_element.parent());
+				this.remove();
+				return;
+			}
+			if (typeof _vnode.children === 'string') {
+				this.el._text(_vnode.children);
+				return;
+			}
+			if (typeof this.children === 'string') {
+				_element._text('');
+				_vnode.children.forEach(
+					_child => _child.renderTo(_element)
+				);
+				return;
+			}
+			for (let i = 0; i < Math.min(this.len(), _vnode.len()); i++)
+				this.children[i].replaceBy(_vnode.children[i]);
+			if (this.len() > _vnode.len()) {
+				const _oldChildren = this.children;
+				_oldChildren.slice(_vnode.len()).forEach(
+					_child => _child.remove()
+				);
+				return;
+			}
+			if (this.len() < _vnode.len()) {
+				const _newChildren = _vnode.children;
+				_newChildren.slice(this.len()).forEach(
+					_child => _child.renderTo(_element)
+				);
+			}
+		}
+
+	}
+    class ReactiveDependency {
+        constructor(_value) {
+            this._value = _value;
+            this.subscribers = new Set();
+        }
+
+        get value() {
+            this.depend();
+            return this._value;
+        }
+
+        set value(_value) {
+            this._value = _value;
+            this.notify();
+        }
+
+        depend() {
+            if (_.activeEffect) this.subscribers.add(_.activeEffect);
+        }
+
+        notify() {
+            this.subscribers.forEach(subscriber => subscriber());
+        }
     }
-    Object.keys(styles).forEach(styleName => {
-        if (styleName in el.style) el.style[styleName] = styles[styleName];
-        else console.warn(`${ styleName } is not a valid style for a <${ el.tagName.toLowerCase() }>`);
+
+	// prototype
+	const _pro = HTMLElement.prototype;
+	_pro._on = function(_eventName, _eventHandler) {
+		this.addEventListener(
+			_eventName,
+			_eventHandler, {
+				capture: true,
+				once: false,
+				passive: true
+			}
+		);
+		return this;
+	};
+	_pro._val = function(_value) {
+		if (!_.isset(_value)) return this.value;
+		this.value = _value;
+		return this;
+	};
+	_pro._html = function(_html) {
+		if (!_.isset(_html)) return this.innerHTML;
+		this.innerHTML = _html;
+		return this;
+	};
+	_pro._text = function(_text) {
+		if (!_.isset(_text)) return this.textContent;
+		this.textContent = _text;
+		return this;
+	};
+	_pro._empty = function() {
+		this.innerHTML = '';
+		return this;
+	};
+	_pro._append = function(_html) {
+		this.innerHTML = this.innerHTML + _html;
+		return this;
+	};
+	_pro._prepend = function(_html) {
+		this.innerHTML = _html + this.innerHTML;
+		return this;
+	};
+	_pro._addClass = function(_className) {
+		this.classList.add(_className);
+		return this;
+	};
+	_pro._removeClass = function(_className) {
+		this.classList.remove(_className);
+		return this;
+	};
+	_pro._toggleClass = function(_className) {
+		this.classList.toggle(_className);
+		return this;
+	};
+	_pro._hide = function() {
+		this.style.display = 'none';
+		return this;
+	};
+	_pro._show = function() {
+		if (this.style.display == 'none') this.style.display = '';
+		return this;
+	};
+	_pro._toggle = function() {
+		if (this.style.display == 'none') this._show();
+		else this._hide();
+		return this;
+	};
+	_pro._remove = function() {
+		this.parent().removeChild(this);
+	};
+	_pro._attr = function(_attributeName, _value) {
+		if (!_.isset(_value)) return this.getAttribute(_attributeName);
+		this.setAttribute(_attributeName, _value);
+		return this;
+	};
+	_pro._hasClass = function(_className) {
+		return this.classList.contains(_className);
+	};
+	_pro._prev = function() {
+		return this.previousElementSibling;
+	};
+	_pro._next = function() {
+		return this.nextElementSibling;
+	};
+	_pro._parent = function() {
+		return this.parentNode;
+	};
+	_pro._find = function(_selector) {
+		return this.querySelectorAll(_selector);
+	};
+	_pro._trigger = function(_eventName) {
+		const _event = new Event(_eventName);
+		this.dispatchEvent(_event);
+		return this;
+	};
+
+	// base
+	const _ = {};
+    _.activeEffect = null;
+	_.unqId = () => {
+		return (btoa(Date.now().toString() + Math.random().toString()))
+			.replace(/=/g, '')
+			.replace(/.{9}/g, '$&-');
+	};
+	_.exists = _element => _element instanceof Element ? document.body.contains(_element) : document.body.contains(_.dom(_element));
+	_.isset = _item => _item instanceof Element ? _.exists(_item) : typeof _item != 'undefined' && _item != null;
+	_.urlParams = () => {
+		return new Proxy(
+			new URLSearchParams(window.location.search), {
+				get: (searchParams, prop) => searchParams.get(prop)
+			}
+		);
+	};
+	_.isValidTag = _tag => {
+		return /^[a-zA-Z]+$/.test(_tag);
+	};
+	_.dom = (_selector, _create) => {
+		if (_create == true) {
+			if (_.isValidTag(_selector))
+				return document.createElement(
+					_selector.toLowerCase()
+				);
+			return null;
+		}
+		const _elements = document.querySelectorAll(_selector);
+		if (_elements.length == 1) return _elements[0];
+		return _elements;
+	};
+	_.ready = _fn => {
+		if (document.readyState != 'loading') _fn();
+		else document.addEventListener(
+			'DOMContentLoaded',
+			_fn, {
+				capture: true,
+				once: false,
+				passive: true
+			}
+		);
+	};
+	_.curl = async function(_url, _request = {method: 'GET'}, _data = {}) {
+		/* How to use
+		    _.curl('https://www.mysite.dev/api/endpoint', {method: 'GET'}, {user: 9345})
+		        .then( response => console.log(response) );
+		*/
+		_request.method = _request.method.toUpperCase();
+		_request.headers = _request.headers ?? {'Content-Type': 'application/json'};
+		_request.cache = _request.cache ?? 'no-cache'; // default, no-cache, reload, force-cache, only-if-cached
+		_request.mode = _request.mode ?? 'cors'; // no-cors, *cors, same-origin
+		_request.credentials = _request.credentials ?? 'same-origin'; // include, *same-origin, omit
+		_request.redirect = _request.redirect ?? 'follow'; // manual, *follow, error
+		_request.referrerPolicy = _request.referrerPolicy ?? 'no-referrer'; // *no-referrer, client
+		if (_request.method != 'GET') _request.body = JSON.stringify(_data);
+		else if (_data != {}) {
+			let _qryArray = [];
+			Object.keys(_data).forEach(_key => {
+				_qryArray.push(_key + "=" + _data[_key]);
+			});
+			_url = _url + "?" + _qryArray.join("&");
+		}
+		const _response = await fetch(_url, _request);
+
+		return _response.json();
+	};
+
+	// Cookies
+	_.cookie = {};
+	_.cookie.add = (_name, _value, _days = 90) => {
+		if (!_.isset(_value)) {
+			const _cookies = new URLSearchParams(
+				document.cookie
+				.replaceAll('&', '%26')
+				.replaceAll('; ', '&')
+			);
+			return _cookies.get(_name);
+		}
+		let _now = new Date();
+		_now.setTime(_now.getTime() + (_days * 24 * 60 * 60 * 1000));
+		document.cookie = _name + "=" + (_value || "") + "; expires=" + _now.toUTCString() + "; path=/";
+	};
+	_.cookie.del = name => document.cookie = name + '=; Max-Age=-99999999;';
+
+	// JSX Virtual DOM
+	/* How to use
+	To get this:
+	    <div id="myAwesomeComponent">
+	        <h1>Title</h1>
+	        <p class="myColor">Content</p>
+	    </div>
+	Do this:
+	    let node1 = 
+	        _.div({id: 'myAwesomeComponent'}, [
+	            _.h1(null, 'Title'),
+	            _.p({class: 'myColor'}, 'Content')
+	        ]);
+	    node1.renderTo();
+	Update the node by:
+	    let node2 = 
+	        _.div({id: 'myNewAwesomeComponent'}, [
+	            _.h1(null, 'Another Title'),
+	            _.p({class: 'anotherColor'}, 'Another Content')
+	        ]);
+	    node1.replaceBy(node2);
+	*/
+	_.a = (props, children) => new VirtualNode('a', props, children);
+	_.area = (props, children) => new VirtualNode('area', props, children);
+	_.article = (props, children) => new VirtualNode('article', props, children);
+	_.aside = (props, children) => new VirtualNode('aside', props, children);
+	_.b = (props, children) => new VirtualNode('b', props, children);
+	_.blockquote = (props, children) => new VirtualNode('blockquote', props, children);
+	_.br = (props, children) => new VirtualNode('br', props, children);
+	_.button = (props, children) => new VirtualNode('button', props, children);
+	_.canvas = (props, children) => new VirtualNode('canvas', props, children);
+	_.code = (props, children) => new VirtualNode('code', props, children);
+	_.div = (props, children) => new VirtualNode('div', props, children);
+	_.footer = (props, children) => new VirtualNode('footer', props, children);
+	_.form = (props, children) => new VirtualNode('form', props, children);
+	_.h1 = (props, children) => new VirtualNode('h1', props, children);
+	_.h2 = (props, children) => new VirtualNode('h2', props, children);
+	_.h3 = (props, children) => new VirtualNode('h3', props, children);
+	_.h4 = (props, children) => new VirtualNode('h4', props, children);
+	_.h5 = (props, children) => new VirtualNode('h5', props, children);
+	_.h6 = (props, children) => new VirtualNode('h6', props, children);
+	_.header = (props, children) => new VirtualNode('header', props, children);
+	_.hr = (props, children) => new VirtualNode('hr', props, children);
+	_.i = (props, children) => new VirtualNode('i', props, children);
+	_.img = (props, children) => new VirtualNode('img', props, children);
+	_.input = (props, children) => new VirtualNode('input', props, children);
+	_.label = (props, children) => new VirtualNode('label', props, children);
+	_.li = (props, children) => new VirtualNode('li', props, children);
+	_.main = (props, children) => new VirtualNode('main', props, children);
+	_.nav = (props, children) => new VirtualNode('nav', props, children);
+	_.ol = (props, children) => new VirtualNode('ol', props, children);
+	_.optgroup = (props, children) => new VirtualNode('optgroup', props, children);
+	_.option = (props, children) => new VirtualNode('option', props, children);
+	_.p = (props, children) => new VirtualNode('p', props, children);
+	_.pre = (props, children) => new VirtualNode('pre', props, children);
+	_.section = (props, children) => new VirtualNode('section', props, children);
+	_.select = (props, children) => new VirtualNode('select', props, children);
+	_.span = (props, children) => new VirtualNode('span', props, children);
+	_.table = (props, children) => new VirtualNode('table', props, children);
+	_.tbody = (props, children) => new VirtualNode('tbody', props, children);
+	_.td = (props, children) => new VirtualNode('td', props, children);
+	_.textarea = (props, children) => new VirtualNode('textarea', props, children);
+	_.tfoot = (props, children) => new VirtualNode('tfoot', props, children);
+	_.th = (props, children) => new VirtualNode('th', props, children);
+	_.thead = (props, children) => new VirtualNode('thead', props, children);
+	_.tr = (props, children) => new VirtualNode('tr', props, children);
+	_.ul = (props, children) => new VirtualNode('ul', props, children);
+
+	// JSX Reactivity
+    /* How to use
+    const _state = _.reactive({
+        name: 'My Name',
+        email: 'myemail@gmail.com'
     });
-};
-_jsx.add.array = (el, children) => {
-    children.forEach(child => {
-        if (Array.isArray(child)) _jsx.add.array(el, child);
-        else if (child instanceof window.Element) el._append(child);
-        else if (typeof child == 'string') _jsx.set.text(el, child);
-    });
-};
-_jsx.dom = (type, _txtPrpOrChild, ...children) => {
-    const el = _dom.get(type);
-    if (Array.isArray(_txtPrpOrChild)) { // is Array of children
-        _jsx.add.array(el, _txtPrpOrChild);
-    } else if (_txtPrpOrChild instanceof window.Element) { // is a Child
-        el.appendChild(_txtPrpOrChild);
-    } else if (typeof _txtPrpOrChild == 'string') { // is Text
-        _jsx.set.text(el, _txtPrpOrChild);
-    } else if (typeof _txtPrpOrChild == 'object') { // is Property or Attribute
-        Object.keys(_txtPrpOrChild).forEach(
-            propName => {
-                if (propName in el || _jsx.exception.attribute.includes(propName) || propName.startsWith('data-')) {
-                    const value = _txtPrpOrChild[propName];
-                    if (propName == 'style') _jsx.set.attribute(el, value);
-                    else if (value) el[propName] = value;
-                } else console.warn(`${propName} is not a valid property of a <${type}>`);
+    _.effectWatcher(
+        () => console.log(
+            'state has changed', 
+            _state.count, 
+            _state.name
+        )
+    );
+    setTimeout(() => {state.name = 'New Name'}, 1000);
+    setTimeout(() => {state.email = 'newemail@gmail.com'}, 2000);
+    */
+    _.effectWatcher = _fn => {
+        _.activeEffect = _fn;
+        _fn();
+        _.activeEffect = null;
+    };
+    _.reactive = _object => {
+        Object.keys(_object).forEach(
+            _key => {
+                const _dependency = new ReactiveDependency();
+                let _value = _object[_key];
+                Object.defineProperty(
+                    _object, 
+                    _key, 
+                    {
+                        get() {
+                            _dependency.depend();
+                            return _value;
+                        },
+                        set(_newValue) {
+                            if (_newValue !== _value) {
+                                _value = _newValue;
+                                _dependency.notify();
+                            }
+                        }
+                    }
+                );
             }
         );
-    }
-    if (children) _jsx.add.array(el, children);
-
-    return el;
-};
-_jsx.render = (html, container = document.body) => container._append(html);
-_jsx.a = (...args) => _jsx.dom('a', ...args);
-_jsx.area = (...args) => _jsx.dom('area', ...args);
-_jsx.article = (...args) => _jsx.dom('article', ...args);
-_jsx.aside = (...args) => _jsx.dom('aside', ...args);
-_jsx.b = (...args) => _jsx.dom('b', ...args);
-_jsx.blockquote = (...args) => _jsx.dom('blockquote', ...args);
-_jsx.br = (...args) => _jsx.dom('br', ...args);
-_jsx.button = (...args) => _jsx.dom('button', ...args);
-_jsx.canvas = (...args) => _jsx.dom('canvas', ...args);
-_jsx.code = (...args) => _jsx.dom('code', ...args);
-_jsx.div = (...args) => _jsx.dom('div', ...args);
-_jsx.footer = (...args) => _jsx.dom('footer', ...args);
-_jsx.form = (...args) => _jsx.dom('form', ...args);
-_jsx.h1 = (...args) => _jsx.dom('h1', ...args);
-_jsx.h2 = (...args) => _jsx.dom('h2', ...args);
-_jsx.h3 = (...args) => _jsx.dom('h3', ...args);
-_jsx.h4 = (...args) => _jsx.dom('h4', ...args);
-_jsx.h5 = (...args) => _jsx.dom('h5', ...args);
-_jsx.h6 = (...args) => _jsx.dom('h6', ...args);
-_jsx.header = (...args) => _jsx.dom('header', ...args);
-_jsx.hr = (...args) => _jsx.dom('hr', ...args);
-_jsx.i = (...args) => _jsx.dom('i', ...args);
-_jsx.img = (...args) => _jsx.dom('img', ...args);
-_jsx.input = (...args) => _jsx.dom('input', ...args);
-_jsx.label = (...args) => _jsx.dom('label', ...args);
-_jsx.li = (...args) => _jsx.dom('li', ...args);
-_jsx.main = (...args) => _jsx.dom('main', ...args);
-_jsx.nav = (...args) => _jsx.dom('nav', ...args);
-_jsx.ol = (...args) => _jsx.dom('ol', ...args);
-_jsx.optgroup = (...args) => _jsx.dom('optgroup', ...args);
-_jsx.option = (...args) => _jsx.dom('option', ...args);
-_jsx.p = (...args) => _jsx.dom('p', ...args);
-_jsx.pre = (...args) => _jsx.dom('pre', ...args);
-_jsx.section = (...args) => _jsx.dom('section', ...args);
-_jsx.select = (...args) => _jsx.dom('select', ...args)
-_jsx.span = (...args) => _jsx.dom('span', ...args);
-_jsx.table = (...args) => _jsx.dom('table', ...args);
-_jsx.tbody = (...args) => _jsx.dom('tbody', ...args);
-_jsx.td = (...args) => _jsx.dom('td', ...args);
-_jsx.textarea = (...args) => _jsx.dom('textarea', ...args);
-_jsx.tfoot = (...args) => _jsx.dom('tfoot', ...args);
-_jsx.th = (...args) => _jsx.dom('th', ...args);
-_jsx.thead = (...args) => _jsx.dom('thead', ...args);
-_jsx.tr = (...args) => _jsx.dom('tr', ...args);
-_jsx.ul = (...args) => _jsx.dom('ul', ...args);
-
-// Http Request
-/* How to use
-    _http.curl('https://acode.cl/test', { user: 9345 }, 'GET')
-        .then( response => {
-            console.log(response);
-        });
-*/
-const _http = {};
-_http.curl = async function (url , data, method = 'POST') {
-    let request = {
-        method: method.toUpperCase(),
-        headers: {'Content-Type':'application/json'},
-        cache: 'no-cache' // default, no-cache, reload, force-cache, only-if-cached
-        //referrerPolicy: 'no-referrer', // *no-referrer, client
-        //mode: 'cors', // no-cors, *cors, same-origin
-        //credentials: 'same-origin', // include, *same-origin, omit
-        //redirect: 'follow' // manual, *follow, error
+        return _object;
     };
-    if (method.toUpperCase() != 'GET') {
-        request.body = JSON.stringify(data);
-    } else {
-        let queryArray = [];
-        Object.keys(data).forEach(key => {
-            queryArray.push(key + "=" + data[key]);
-        });
-        url = url + "?" + queryArray.join("&");
-    }
-    const response = await fetch(url, request);
-
-    return response.json();
-};
-_http.post = async function (url , data) {
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        cache: 'no-cache',
-        body: JSON.stringify(data)
-    });
-
-    return response.json();
-};
-_http.put = async function (url , data) {
-    const response = await fetch(url, {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json'},
-        cache: 'no-cache',
-        body: JSON.stringify(data)
-    });
-
-    return response.json();
-};
-_http.get = async function (url , data) {
-    let queryArray = [];
-    Object.keys(data).forEach(key => {
-        queryArray.push(key + "=" + data[key]);
-    });
-    const response = await fetch(url + "?" + queryArray.join("&"), {
-        method: 'GET',
-        headers: {'Content-Type':'application/json'},
-        cache: 'no-cache'
-    });
-
-    return response.json();
-};
-_http.del = async function (url , data) {
-    const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {'Content-Type':'application/json'},
-        cache: 'no-cache',
-        body: JSON.stringify(data)
-    });
-
-    return response.json();
-};
-
-// Cookies
-_cookie = {};
-_cookie.set = (name, value, days = 90) => {
-    let date = new Date();
-    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    let expires = "; expires=" + date.toUTCString();
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-};
-_cookie.get = name => {
-    let nameEQ = name + "=";
-    let ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-};
-_cookie.del = name => document.cookie = name + '=; Max-Age=-99999999;';
+}());
