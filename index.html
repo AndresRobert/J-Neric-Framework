@@ -150,36 +150,32 @@ if (<span class="white">another_element</span>.<span class="blue">_hasClass(</sp
 
 <p>Do this:</p>
 <code>
-<pre>
-    let node1 = <span class="red">_.div(</span>{id: 'myAwesomeComponent'}, [
-        <span class="red">_.h1(</span>null, 'Title'<span class="red">)</span>,
-        <span class="red">_.p(</span>{class: 'myColorClass'}, 'Content'<span class="red">)</span>
-    ]<span class="red">)</span>;
-    node1.<span class="blue">renderTo(</span>_.dom('#app')<span class="blue">)</span>;
-</pre>
+<pre>let node1 = <span class="red">_.div(</span>{id: 'myAwesomeComponent'}, [
+    <span class="red">_.h1(</span>null, 'Title'<span class="red">)</span>,
+    <span class="red">_.p(</span>{class: 'myColorClass'}, 'Content'<span class="red">)</span>
+]<span class="red">)</span>;
+node1.<span class="blue">renderTo(</span>_.dom('#app')<span class="blue">)</span>;</pre>
 </code>
 
 <p>Update the node by reactivity:</p>
 <code>
-<pre>
-    const someState = <span class="red">_.reactive(</span>{
-        <span class="white">title</span>: 'Title',
-        <span class="white">content</span>: 'Content',
-        <span class="white">color</span>: 'myColorClass'
-    }<span class="red">)</span>;
+<pre>const someState = <span class="red">_.reactive(</span>{
+    <span class="white">title</span>: 'Title',
+    <span class="white">content</span>: 'Content',
+    <span class="white">color</span>: 'myColorClass'
+}<span class="red">)</span>;
 
-    <span class="red">_.stateWatcher(</span>() => {
-        let node2 = <span class="red">_.div(</span>{id: 'myAwesomeComponent'}, [
-            <span class="red">_.h1(</span>null, someState.title<span class="red">)</span>,
-            <span class="red">_.p(</span>{class: someState.color}, someState.content<span class="red">)</span>
-        ]<span class="red">)</span>;
-        node1.<span class="blue">replaceBy(</span>node2<span class="blue">)</span>;
-    }<span class="red">)</span>;
+<span class="red">_.stateWatcher(</span>() => {
+    let node2 = <span class="red">_.div(</span>{id: 'myAwesomeComponent'}, [
+        <span class="red">_.h1(</span>null, someState.title<span class="red">)</span>,
+        <span class="red">_.p(</span>{class: someState.color}, someState.content<span class="red">)</span>
+    ]<span class="red">)</span>;
+    node1.<span class="blue">replaceBy(</span>node2<span class="blue">)</span>;
+}<span class="red">)</span>;
 
-    setTimeout(() => {someState.<span class="white">title</span> = 'New Title'}, 1000);
-    setTimeout(() => {someState.<span class="white">content</span> = 'New Content'}, 2000);
-    setTimeout(() => {someState.<span class="white">color</span> = 'anotherColorClass'}, 3000);
-</pre>
+setTimeout(() => {someState.<span class="white">title</span> = 'New Title'}, 1000);
+setTimeout(() => {someState.<span class="white">content</span> = 'New Content'}, 2000);
+setTimeout(() => {someState.<span class="white">color</span> = 'anotherColorClass'}, 3000);</pre>
 </code>
 
 <footer>
