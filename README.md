@@ -122,5 +122,6 @@ setTimeout(() => {someState.content = 'New Content'}, 2000);
 setTimeout(() => {someState.color = 'anotherColorClass'}, 3000);
 ```
 
-# See it in action
-Version 1.0.0 See full documentation [here](https://andresrobert.github.io/J-Neric-Framework/)
+## Version
+Version 1.0.0
+See full documentation [here](https://andresrobert.github.io/J-Neric-Framework/)
