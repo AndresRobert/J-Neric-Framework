@@ -393,4 +393,15 @@
         );
         return _object;
     };
+
+	// Service worker
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('/src/j-neric-worker.js')
+			.then(
+				registration => {
+					console.log("J-neric worker registered");
+					console.log(registration);
+				}
+			).catch(console.log);
+	}
 }());
