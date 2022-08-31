@@ -264,20 +264,20 @@
 
 	// Cookies
 	_.cookie = {};
-	_.cookie.add = (_name, _value, _days = 90) => {
-		if (!_.isset(_value)) {
-			const _cookies = new URLSearchParams(
-				document.cookie
-				.replaceAll('&', '%26')
-				.replaceAll('; ', '&')
-			);
-			return _cookies.get(_name);
-		}
+	_.cookie.put = (_name, _value, _days = 90) => {
 		let _now = new Date();
 		_now.setTime(_now.getTime() + (_days * 24 * 60 * 60 * 1000));
 		document.cookie = _name + "=" + (_value || "") + "; expires=" + _now.toUTCString() + "; path=/";
 	};
-	_.cookie.del = name => document.cookie = name + '=; Max-Age=-99999999;';
+    _.cookie.get = _name => {
+		const _cookies = new URLSearchParams(
+            document.cookie
+            .replaceAll('&', '%26')
+            .replaceAll('; ', '&')
+        );
+        return _cookies.get(_name);
+	};
+	_.cookie.del = _name => document.cookie = _name + '=; Max-Age=-99999999;';
 
 	// JSX Virtual DOM
 	/* How to use
@@ -353,7 +353,7 @@
         name: 'My Name',
         email: 'myemail@gmail.com'
     });
-    _.effectWatcher(
+    _.stateWatcher(
         () => console.log(
             'state has changed', 
             _state.count, 
@@ -363,7 +363,7 @@
     setTimeout(() => {state.name = 'New Name'}, 1000);
     setTimeout(() => {state.email = 'newemail@gmail.com'}, 2000);
     */
-    _.effectWatcher = _fn => {
+    _.stateWatcher = _fn => {
         _.activeEffect = _fn;
         _fn();
         _.activeEffect = null;
