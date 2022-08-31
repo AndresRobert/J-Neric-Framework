@@ -139,6 +139,7 @@ if (<span class="white">another_element</span>.<span class="blue">_hasClass(</sp
 </code>
 
 <h4>JSX</h4>
+
 <p>To get this:</p>
 <code>
 <pre>
@@ -148,6 +149,7 @@ if (<span class="white">another_element</span>.<span class="blue">_hasClass(</sp
     &lt;/div&gt;
 </pre>
 </code>
+
 <p>Do this:</p>
 <code>
 <pre>
@@ -156,8 +158,9 @@ if (<span class="white">another_element</span>.<span class="blue">_hasClass(</sp
         _.p({class: 'myColorClass'}, 'Content')
     ]);
     node1.renderTo(_.dom('#app'));
-<pre>
+</pre>
 </code>
+
 <p>Update the node by reactivity:</p>
 <code>
 <pre>
@@ -178,7 +181,7 @@ if (<span class="white">another_element</span>.<span class="blue">_hasClass(</sp
     setTimeout(() => {someState.title = 'New Title'}, 1000);
     setTimeout(() => {someState.content = 'New Content'}, 2000);
     setTimeout(() => {someState.color = 'anotherColorClass'}, 3000);
-<pre>
+</pre>
 </code>
 
 <footer>
